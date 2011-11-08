@@ -161,6 +161,7 @@ application.</p></dd>
 <ul>
 <li><p>bluepill</p></li>
 <li><p>inittab</p></li>
+<li><p>runit</p></li>
 <li><p>upstart</p></li>
 </ul>
 
@@ -195,7 +196,8 @@ to run it.</p>
 job: bundle exec rake jobs:work
 </code></pre>
 
-<p>You can validate your Procfile format using the <code>check</code> command</p>
+<p>A process name may contain letters, numbers amd the underscore character.
+You can validate your Procfile format using the <code>check</code> command:</p>
 
 <pre><code>$ foreman check
 </code></pre>
@@ -243,8 +245,8 @@ port: 15000
 
 
   <ol class='man-decor man-foot man foot'>
-    <li class='tl'>Foreman 0.23.0</li>
-    <li class='tc'>September 2011</li>
+    <li class='tl'>Foreman 0.26.0</li>
+    <li class='tc'>November 2011</li>
     <li class='tr'>foreman(1)</li>
   </ol>
 
