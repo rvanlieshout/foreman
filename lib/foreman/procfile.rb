@@ -4,10 +4,11 @@ require "foreman/procfile_entry"
 # A valid Procfile entry is captured by this regex.
 # All other lines are ignored.
 #
-# /^([A-Za-z0-9_]+):\s*(.+)$/
+# /^((\|\s)*)([A-Za-z0-9_]+):\s*(.+)$/
 #
-# $1 = name
-# $2 = command
+# $1 = dependency information
+# $2 = name
+# $3 = command
 #
 class Foreman::Procfile
 
@@ -28,9 +29,19 @@ class Foreman::Procfile
 private
 
   def parse_procfile(filename)
+    dependency_tree = []
+    
     File.read(filename).split("\n").map do |line|
-      if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
-        Foreman::ProcfileEntry.new($1, $2)
+      if line =~ /^((\|\s)*)([A-Za-z0-9_]+):\s*(.+)$/
+        name = $3
+        command = $4
+
+        dependency_level = $1.to_s.scan("|").length
+        dependent_procfile_entry = dependency_level > 0 ? dependency_tree[dependency_level - 1] : nil
+
+        Foreman::ProcfileEntry.new(name, command, dependent_procfile_entry).tap do |procfile_entry|
+          dependency_tree[dependency_level] = procfile_entry
+        end
       end
     end.compact
   end

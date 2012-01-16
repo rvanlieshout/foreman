@@ -6,11 +6,13 @@ class Foreman::Process
   attr_reader :num
   attr_reader :pid
   attr_reader :port
+  attr_reader :dependency_delay
 
-  def initialize(entry, num, port)
+  def initialize(entry, num, port, dependency_delay = 0)
     @entry = entry
     @num = num
     @port = port
+    @dependency_delay = dependency_delay
   end
 
   def run(pipe, basedir, environment)
@@ -33,14 +35,29 @@ private
       trap("INT", "IGNORE")
       $stdout.reopen writer
       reader.close
-      exec Foreman.runner, replace_command_env(command)
+      
+      start_foreman_runner_after_dependency_delay = true
+      
+      if dependency_delay > 0
+        Signal.trap("TERM") { start_foreman_runner_after_dependency_delay = false }  
+        sleep dependency_delay
+      end
+      
+      if start_foreman_runner_after_dependency_delay
+        puts "starting..." if dependency_delay > 0
+        exec Foreman.runner, replace_command_env(command)
+      end
     end
     [ reader, pid ]
   end
 
   def run_process(command, pipe)
     io, @pid = fork_with_io(command)
-    output pipe, "started with pid %d" % @pid
+    if dependency_delay > 0
+      output pipe, "starting in %d (pid %d)" % [dependency_delay, @pid]
+    else
+      output pipe, "started with pid %d" % @pid
+    end
     Thread.new do
       until io.eof?
         output pipe, io.gets

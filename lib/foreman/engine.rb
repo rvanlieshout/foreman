@@ -59,7 +59,7 @@ private ######################################################################
     procfile.entries.each do |entry|
       reader, writer = IO.pipe
       entry.spawn(concurrency[entry.name], writer, @directory, @environment, port_for(entry, 1, base_port)).each do |process|
-        running_processes[process.pid] = process
+        running_processes[process.pid] = { :process => process, :procfile_entry => entry }
         readers[process] = reader
       end
     end
@@ -70,9 +70,18 @@ private ######################################################################
   end
 
   def kill_all(signal="SIGTERM")
-    running_processes.each do |pid, process|
-      info "sending #{signal} to pid #{pid}"
-      Process.kill(signal, pid) rescue Errno::ESRCH
+    # kill processes sorted by dependency_delay
+    previous_dependency_delay = nil
+    running_processes.map{ |pid, process_data| { :pid => pid, :dependency_delay => process_data[:procfile_entry].dependency_delay }}
+                        .sort{ |a,b| b[:dependency_delay] <=> a[:dependency_delay] }
+                        .each do |process_data|
+
+      sleep 5 if previous_dependency_delay && previous_dependency_delay != process_data[:dependency_delay]
+      
+      info "sending #{signal} to pid #{process_data[:pid]}"
+      Process.kill(signal, process_data[:pid]) rescue Errno::ESRCH
+
+      previous_dependency_delay = process_data[:dependency_delay]
     end
   end
 
@@ -105,8 +114,8 @@ private ######################################################################
 
   def watch_for_termination
     pid, status = Process.wait2
-    process = running_processes.delete(pid)
-    info "process terminated", process.name
+    process_data = running_processes.delete(pid)
+    info "process terminated", process_data[:process].name
     terminate_gracefully
     kill_all
   rescue Errno::ECHILD
