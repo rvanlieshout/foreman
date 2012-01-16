@@ -35,18 +35,7 @@ private
       trap("INT", "IGNORE")
       $stdout.reopen writer
       reader.close
-      
-      start_foreman_runner_after_dependency_delay = true
-      
-      if dependency_delay > 0
-        Signal.trap("TERM") { start_foreman_runner_after_dependency_delay = false }  
-        sleep dependency_delay
-      end
-      
-      if start_foreman_runner_after_dependency_delay
-        puts "starting..." if dependency_delay > 0
-        exec Foreman.runner, replace_command_env(command)
-      end
+      exec Foreman.runner, dependency_delay.to_s, replace_command_env(command)
     end
     [ reader, pid ]
   end

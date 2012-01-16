@@ -1,2 +1,2 @@
 #!/bin/sh
-exec $1 2>&1
+sleep $1 && exec $2 2>&1
